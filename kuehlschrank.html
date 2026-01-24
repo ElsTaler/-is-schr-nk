@@ -13,7 +13,6 @@
         .search-box { background: #fffde7; border: 2px solid #fdd835; padding: 12px; width: 100%; border-radius: 10px; font-size: 16px; box-sizing: border-box; margin-bottom: 25px; }
         .input-group { background: #f8f9fa; padding: 15px; border-radius: 15px; border: 1px solid #eee; margin-bottom: 30px; }
         
-        /* Labels für die Felder */
         label { display: block; font-size: 12px; font-weight: bold; color: #555; margin-top: 10px; margin-bottom: 2px; }
         
         .input-row { display: flex; gap: 10px; }
@@ -80,7 +79,7 @@
 </div>
 
 <script>
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx9ZKZ8s3Y21sjR-3NL9dfCd7YGt6W5xafyFXVaVuct-fNQt7SKlzgueTx_f9my98lu7Q/exec"; // <--- URL EINSETZEN!
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx9ZKZ8s3Y21sjR-3NL9dfCd7YGt6W5xafyFXVaVuct-fNQt7SKlzgueTx_f9my98lu7Q/exec"; // <--- URL HIER EINSETZEN
     const CORRECT_PIN = "1908";
     let allData = [];
 
@@ -107,16 +106,10 @@
         const freeze = document.getElementById('freezeDate').value;
         const mhd = document.getElementById('mhdDate').value;
         const ebene = document.getElementById('ebene').value;
-        
         if(!name) return;
-        
-        // Wir speichern beide Daten in einem Feld, getrennt durch ein "|" oder wir nutzen zwei Spalten.
-        // Für dieses einfache Script kombinieren wir es im Datums-Feld: "E:2023-01-01|M:2024-01-01"
         const dateCombined = "E:" + freeze + "|M:" + mhd;
         const vollerName = menge + "x " + name;
-
         await fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify({action: "add", name: vollerName, date: dateCombined, ebene: ebene}) });
-        
         document.getElementById('name').value = "";
         document.getElementById('freezeDate').value = "";
         document.getElementById('mhdDate').value = "";
@@ -149,7 +142,7 @@
     }
 
     function formatDate(isoStr) {
-        if (!isoStr || isoStr === "undefined") return "-";
+        if (!isoStr || isoStr === "undefined" || isoStr === "") return "-";
         const d = new Date(isoStr);
         return isNaN(d) ? "-" : d.toLocaleDateString('de-DE');
     }
@@ -159,8 +152,17 @@
         const display = document.getElementById('display');
         let filtered = allData.filter(row => row[0].toLowerCase().includes(searchTerm));
         
+        filtered.sort((a, b) => {
+            const ebeneA = a[2] || "";
+            const ebeneB = b[2] || "";
+            return ebeneA.localeCompare(ebeneB, undefined, {numeric: true, sensitivity: 'base'});
+        });
+
         let html = "";
         let aktuellesFach = "";
+        const heute = new Date();
+        const vorEinemJahr = new Date();
+        vorEinemJahr.setFullYear(heute.getFullYear() - 1);
 
         filtered.forEach(row => {
             if (row[2] !== aktuellesFach) {
@@ -168,18 +170,31 @@
                 html += `<div class="fach-header">${aktuellesFach}</div>`;
             }
 
-            // Datum aufsplitten
             const dateParts = row[1].split("|");
-            const eDate = dateParts[0] ? dateParts[0].replace("E:", "") : "";
-            const mDate = dateParts[1] ? dateParts[1].replace("M:", "") : "";
+            const eDateStr = dateParts[0] ? dateParts[0].replace("E:", "") : "";
+            const mDateStr = dateParts[1] ? dateParts[1].replace("M:", "") : "";
+            
+            const eDate = eDateStr ? new Date(eDateStr) : null;
+            const mDate = mDateStr ? new Date(mDateStr) : null;
 
-            html += `<div class="item">
+            let bgColor = "white";
+            let warnText = "";
+
+            if (mDate && mDate <= heute) {
+                bgColor = "#ffebee";
+                warnText = "⚠️ MHD!";
+            } else if (eDate && eDate <= vorEinemJahr) {
+                bgColor = "#fff9c4";
+                warnText = "🧊 > 1 Jahr!";
+            }
+
+            html += `<div class="item" style="background-color: ${bgColor};">
                         <div>
-                            <strong>${row[0]}</strong>
+                            <strong>${row[0]} <span style="color:red; font-size:10px;">${warnText}</span></strong>
                             <div class="date-container">
-                                ${eDate ? '❄️ Eingefroren: ' + formatDate(eDate) : ''}
-                                ${eDate && mDate ? '<br>' : ''}
-                                ${mDate ? '🕒 Haltbar bis: ' + formatDate(mDate) : ''}
+                                ${eDateStr ? '❄️ Eingefroren: ' + formatDate(eDateStr) : ''}
+                                ${eDateStr && mDateStr ? '<br>' : ''}
+                                ${mDateStr ? '🕒 Haltbar bis: ' + formatDate(mDateStr) : ''}
                             </div>
                         </div>
                         <div class="controls">
