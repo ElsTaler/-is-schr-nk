@@ -3,34 +3,30 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Eisschrank-Inhalt</title>
+    <title>Bernds Eisschrank-Profi</title>
     <style>
         body { font-family: 'Segoe UI', sans-serif; max-width: 500px; margin: 20px auto; background: #eef2f3; padding: 15px; }
-        
-        /* Passwort-Sperre Layout */
         #login-screen { text-align: center; margin-top: 100px; }
-        #main-content { display: none; } /* Versteckt den Inhalt am Anfang */
-
+        #main-content { display: none; }
         .card { background: white; padding: 25px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
         h2 { color: #1a73e8; text-align: center; margin-bottom: 20px; }
-        
         .search-box { background: #fffde7; border: 2px solid #fdd835; padding: 12px; width: 100%; border-radius: 10px; font-size: 16px; box-sizing: border-box; margin-bottom: 25px; }
-        
         .input-group { background: #f8f9fa; padding: 15px; border-radius: 15px; border: 1px solid #eee; margin-bottom: 30px; }
-        .input-row { display: flex; gap: 10px; }
-        input, select { width: 100%; padding: 12px; margin: 8px 0; border: 2px solid #ddd; border-radius: 10px; font-size: 16px; box-sizing: border-box; }
-        #menge { width: 90px; }
         
+        /* Labels für die Felder */
+        label { display: block; font-size: 12px; font-weight: bold; color: #555; margin-top: 10px; margin-bottom: 2px; }
+        
+        .input-row { display: flex; gap: 10px; }
+        input, select { width: 100%; padding: 12px; margin-bottom: 10px; border: 2px solid #ddd; border-radius: 10px; font-size: 16px; box-sizing: border-box; }
+        #menge { width: 90px; }
         button { width: 100%; padding: 15px; background: #1a73e8; color: white; border: none; border-radius: 10px; font-size: 16px; font-weight: bold; cursor: pointer; }
         
         .fach-header { background: #34ace0; color: white; padding: 10px 15px; border-radius: 8px; margin-top: 20px; font-weight: bold; font-size: 13px; text-transform: uppercase; }
         .item { background: white; padding: 12px; margin: 8px 0; border-radius: 12px; display: flex; justify-content: space-between; align-items: center; border-left: 5px solid #1a73e8; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
-        
+        .date-container { font-size: 11px; color: #666; margin-top: 4px; line-height: 1.4; }
         .controls { display: flex; gap: 8px; }
         .minus-btn { background: #fff176; color: #5d4037; border: none; padding: 8px 14px; border-radius: 8px; cursor: pointer; font-weight: bold; }
         .del-btn { background: #ff5252; color: white; border: none; padding: 8px 12px; border-radius: 8px; cursor: pointer; }
-        
-        .date-info { font-size: 12px; color: #666; display: block; margin-top: 4px; }
     </style>
 </head>
 <body>
@@ -44,17 +40,29 @@
 
 <div id="main-content">
     <div class="card">
-        <h2>❄️ Unser Eisschrank</h2>
+        <h2>❄️ Mein Eisschrank</h2>
         
         <input type="text" id="searchInput" class="search-box" placeholder="🔎 Suchen..." onkeyup="filterData()">
 
         <div class="input-group">
-            <label style="font-size: 14px; font-weight: bold;">Neu erfassen:</label>
+            <label>ARTIKELNAME & MENGE</label>
             <div class="input-row">
-                <input type="text" id="name" placeholder="Was?">
+                <input type="text" id="name" placeholder="z.B. Erbsen">
                 <input type="number" id="menge" value="1" min="1">
             </div>
-            <input type="date" id="date">
+
+            <div class="input-row">
+                <div style="flex: 1;">
+                    <label>EINFRIERDATUM</label>
+                    <input type="date" id="freezeDate">
+                </div>
+                <div style="flex: 1;">
+                    <label>HALTBAR BIS (MHD)</label>
+                    <input type="date" id="mhdDate">
+                </div>
+            </div>
+
+            <label>FACH / EBENE</label>
             <select id="ebene">
                 <option value="Ebene 1 (Fach)">Ebene 1 (Fach)</option>
                 <option value="Ebene 2">Ebene 2</option>
@@ -63,28 +71,24 @@
                 <option value="Ebene 5">Ebene 5</option>
                 <option value="Ebene 6 (kleine Schublade)">Ebene 6 (kleine Schublade)</option>
             </select>
-            <button onclick="sendData()">In den Eisschrank legen</button>
+            <button onclick="sendData()">Hinzufügen</button>
         </div>
 
         <div id="display">Lade Bestände...</div>
-        <button onclick="logout()" style="background: #999; margin-top: 30px; padding: 8px; font-size: 12px;">Logout (PIN erneut anfordern)</button>
+        <button onclick="logout()" style="background: #999; margin-top: 30px; padding: 8px; font-size: 12px;">Abmelden</button>
     </div>
 </div>
 
 <script>
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx9ZKZ8s3Y21sjR-3NL9dfCd7YGt6W5xafyFXVaVuct-fNQt7SKlzgueTx_f9my98lu7Q/exec"; // <--- HIER DEINE URL EINSETZEN!
+    const SCRIPT_URL = "AKfycbx9ZKZ8s3Y21sjR-3NL9dfCd7YGt6W5xafyFXVaVuct-fNQt7SKlzgueTx_f9my98lu7Q"; // <--- URL EINSETZEN!
     const CORRECT_PIN = "1908";
     let allData = [];
 
-    // TÜRSTEHER FUNKTIONEN
     function checkPin() {
-        const input = document.getElementById('pinInput').value;
-        if (input === CORRECT_PIN) {
+        if (document.getElementById('pinInput').value === CORRECT_PIN) {
             localStorage.setItem('eisschrank_access', 'granted');
             showApp();
-        } else {
-            alert("Falsche PIN!");
-        }
+        } else { alert("Falsche PIN!"); }
     }
 
     function showApp() {
@@ -93,49 +97,46 @@
         loadData();
     }
 
-    function logout() {
-        localStorage.removeItem('eisschrank_access');
-        location.reload();
-    }
+    function logout() { localStorage.removeItem('eisschrank_access'); location.reload(); }
 
-    // Prüfen beim Start, ob PIN gemerkt wurde
-    if (localStorage.getItem('eisschrank_access') === 'granted') {
-        showApp();
-    }
+    if (localStorage.getItem('eisschrank_access') === 'granted') { showApp(); }
 
-    // BESTANDS-FUNKTIONEN (wie bisher)
     async function sendData() {
         const name = document.getElementById('name').value;
         const menge = document.getElementById('menge').value;
-        const date = document.getElementById('date').value;
+        const freeze = document.getElementById('freezeDate').value;
+        const mhd = document.getElementById('mhdDate').value;
         const ebene = document.getElementById('ebene').value;
+        
         if(!name) return;
         
+        // Wir speichern beide Daten in einem Feld, getrennt durch ein "|" oder wir nutzen zwei Spalten.
+        // Für dieses einfache Script kombinieren wir es im Datums-Feld: "E:2023-01-01|M:2024-01-01"
+        const dateCombined = "E:" + freeze + "|M:" + mhd;
         const vollerName = menge + "x " + name;
-        await fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify({action: "add", name: vollerName, date: date, ebene: ebene}) });
+
+        await fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify({action: "add", name: vollerName, date: dateCombined, ebene: ebene}) });
         
         document.getElementById('name').value = "";
-        document.getElementById('menge').value = "1";
+        document.getElementById('freezeDate').value = "";
+        document.getElementById('mhdDate').value = "";
         loadData();
     }
 
-    async function changeQty(fullName, currentEbene, currentDate) {
+    async function changeQty(fullName, currentEbene, dateCombined) {
         let parts = fullName.split("x ");
-        if(parts.length < 2) return; 
         let qty = parseInt(parts[0]);
         let itemName = parts.slice(1).join("x ");
-
         await fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify({action: "delete", name: fullName}) });
-
         if (qty > 1) {
             let newName = (qty - 1) + "x " + itemName;
-            await fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify({action: "add", name: newName, date: currentDate, ebene: currentEbene}) });
+            await fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify({action: "add", name: newName, date: dateCombined, ebene: currentEbene}) });
         }
         loadData();
     }
 
     async function deleteItem(name) {
-        if(!confirm(name + " komplett entfernen?")) return;
+        if(!confirm(name + " löschen?")) return;
         await fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify({action: "delete", name: name}) });
         loadData();
     }
@@ -147,12 +148,17 @@
         filterData();
     }
 
+    function formatDate(isoStr) {
+        if (!isoStr || isoStr === "undefined") return "-";
+        const d = new Date(isoStr);
+        return isNaN(d) ? "-" : d.toLocaleDateString('de-DE');
+    }
+
     function filterData() {
         const searchTerm = document.getElementById('searchInput').value.toLowerCase();
         const display = document.getElementById('display');
         let filtered = allData.filter(row => row[0].toLowerCase().includes(searchTerm));
-        filtered.sort((a, b) => a[2].localeCompare(b[2]) || new Date(a[1]) - new Date(b[1]));
-
+        
         let html = "";
         let aktuellesFach = "";
 
@@ -162,17 +168,20 @@
                 html += `<div class="fach-header">${aktuellesFach}</div>`;
             }
 
-            let displayDate = 'Kein MHD';
-            if (row[1]) {
-                const dateObj = new Date(row[1]);
-                const day = String(dateObj.getDate()).padStart(2, '0');
-                const month = String(dateObj.getMonth() + 1).padStart(2, '0');
-                const year = dateObj.getFullYear();
-                displayDate = `MHD: ${day}.${month}.${year}`;
-            }
+            // Datum aufsplitten
+            const dateParts = row[1].split("|");
+            const eDate = dateParts[0] ? dateParts[0].replace("E:", "") : "";
+            const mDate = dateParts[1] ? dateParts[1].replace("M:", "") : "";
 
             html += `<div class="item">
-                        <div><strong>${row[0]}</strong><br><span class="date-info">${displayDate}</span></div>
+                        <div>
+                            <strong>${row[0]}</strong>
+                            <div class="date-container">
+                                ${eDate ? '❄️ Eingefroren: ' + formatDate(eDate) : ''}
+                                ${eDate && mDate ? '<br>' : ''}
+                                ${mDate ? '🕒 Haltbar bis: ' + formatDate(mDate) : ''}
+                            </div>
+                        </div>
                         <div class="controls">
                             <button class="minus-btn" onclick="changeQty('${row[0]}', '${row[2]}', '${row[1]}')">-1</button>
                             <button class="del-btn" onclick="deleteItem('${row[0]}')">🗑️</button>
