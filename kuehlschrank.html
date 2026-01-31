@@ -46,7 +46,8 @@
         <div class="input-group">
             <label>ARTIKELNAME & MENGE</label>
             <div class="input-row">
-                <input type="text" id="name" placeholder="z.B. Erbsen">
+                <input type="text" id="name" placeholder="z.B. Erbsen" list="artikel-vorschlaege">
+                <datalist id="artikel-vorschlaege"></datalist>
                 <input type="number" id="menge" value="1" min="1">
             </div>
 
@@ -79,7 +80,8 @@
 </div>
 
 <script>
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx95Jepa2ML_z3GUJj6zTuaOjX1cwGkWiD3T90zicTuQm21THmjsrNz6uoJjFzB7TmuaQ/exec"; // <--- URL HIER EINSETZEN
+    // DEINE URL BLEIBT GLEICH
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx95Jepa2ML_z3GUJj6zTuaOjX1cwGkWiD3T90zicTuQm21THmjsrNz6uoJjFzB7TmuaQ/exec"; 
     const CORRECT_PIN = "1908";
     let allData = [];
 
@@ -94,11 +96,29 @@
         document.getElementById('login-screen').style.display = 'none';
         document.getElementById('main-content').style.display = 'block';
         loadData();
+        loadSuggestions(); // NEU: Vorschläge beim Starten laden
     }
 
     function logout() { localStorage.removeItem('eisschrank_access'); location.reload(); }
 
     if (localStorage.getItem('eisschrank_access') === 'granted') { showApp(); }
+
+    // NEU: Funktion holt die Artikelliste aus Google Sheets
+    async function loadSuggestions() {
+        try {
+            const response = await fetch(SCRIPT_URL + "?action=getSuggestions");
+            const vorschlaege = await response.json();
+            const datalist = document.getElementById('artikel-vorschlaege');
+            datalist.innerHTML = ""; // Vorher leeren
+            vorschlaege.forEach(item => {
+                let option = document.createElement('option');
+                option.value = item;
+                datalist.appendChild(option);
+            });
+        } catch (e) {
+            console.log("Vorschläge konnten noch nicht geladen werden.");
+        }
+    }
 
     async function sendData() {
         const name = document.getElementById('name').value;
@@ -107,13 +127,19 @@
         const mhd = document.getElementById('mhdDate').value;
         const ebene = document.getElementById('ebene').value;
         if(!name) return;
+        
         const dateCombined = "E:" + freeze + "|M:" + mhd;
         const vollerName = menge + "x " + name;
+        
         await fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify({action: "add", name: vollerName, date: dateCombined, ebene: ebene}) });
+        
+        // Felder leeren
         document.getElementById('name').value = "";
         document.getElementById('freezeDate').value = "";
         document.getElementById('mhdDate').value = "";
+        
         loadData();
+        loadSuggestions(); // Liste nach dem Hinzufügen aktualisieren
     }
 
     async function changeQty(fullName, currentEbene, dateCombined) {
